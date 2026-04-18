@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DO-178C Test Case Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid #334155;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .header .badge {
+      background: #3b82f6;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Input Section */
+    .input-section {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .input-section label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .input-section textarea {
+      width: 100%;
+      min-height: 200px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      padding: 1rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-section textarea:focus {
+      border-color: #3b82f6;
+    }
+
+    .input-section textarea::placeholder {
+      color: #475569;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1.25rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:disabled {
+      background: #1e40af;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: #fff;
+    }
+    .btn-success:hover { background: #059669; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #475569;
+      color: #94a3b8;
+    }
+    .btn-outline:hover {
+      border-color: #64748b;
+      color: #e2e8f0;
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-left: 0.5rem;
+    }
+
+    .status.error { color: #f87171; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results Section */
+    .results-section {
+      margin-top: 1rem;
+    }
+
+    .hlr-block {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .hlr-block-header {
+      background: #334155;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hlr-block-header h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .logical-overview {
+      padding: 1rem 1.25rem;
+      background: #1a2536;
+      border-bottom: 1px solid #334155;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      white-space: pre-line;
+      line-height: 1.7;
+    }
+
+    .logical-overview .formula {
+      color: #60a5fa;
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+
+    /* Table */
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    table thead {
+      position: sticky;
+      top: 0;
+    }
+
+    table thead tr.label-row th {
+      background: #1e3a5f;
+      color: #93c5fd;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.35rem 0.75rem;
+      border: 1px solid #2d4a6f;
+      text-align: center;
+    }
+
+    table thead tr.header-row th {
+      background: #1e293b;
+      color: #cbd5e1;
+      font-weight: 600;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #334155;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    table tbody td {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    table tbody tr:nth-child(odd) { background: #1e293b; }
+    table tbody tr:nth-child(even) { background: #172033; }
+
+    table tbody tr:first-child td {
+      background: #1a3328;
+      color: #6ee7b7;
+      font-weight: 600;
+    }
+
+    table tbody td:first-child {
+      font-weight: 600;
+      color: #93c5fd;
+      text-align: left;
+    }
+
+    table tbody td:nth-child(2) {
+      text-align: left;
+      white-space: normal;
+      max-width: 320px;
+    }
+
+    table tbody td.output-set {
+      color: #6ee7b7;
+      font-weight: 700;
+    }
+    table tbody td.output-not-set {
+      color: #fca5a5;
+      font-weight: 600;
+    }
+
+    /* Flipped cell highlight */
+    table tbody td.flipped {
+      background: #3b1c1c !important;
+      color: #fbbf24;
+      font-weight: 700;
+    }
+
+    table tbody tr:first-child td.flipped {
+      background: #1a3328 !important;
+      color: #6ee7b7;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #475569;
+    }
+
+    .empty-state p {
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>DO-178C Test Case Generator</h1>
+  <span class="badge">MC/DC</span>
+</div>
+
+<div class="container">
+  <div class="input-section">
+    <label for="hlrInput">Paste High-Level Requirements (HLR)</label>
+    <textarea id="hlrInput" placeholder="HLR-001
+The software shall set the Fuel_Enable output when Engine_Start_Command is active, Engine_Stop_Command is not active, Fire_Detected is not active, Oil_Pressure_Low is not active, Overspeed_Detected is not active, and Maintenance_Mode is not active.
+
+HLR-002
+The software shall clear the Fuel_Enable output when Engine_Stop_Command is active and Engine_Start_Command is not active and Fire_Detected is not active."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="generateBtn" onclick="generate()">
+        Generate Test Cases
+      </button>
+      <button class="btn btn-success" id="exportBtn" onclick="exportExcel()" style="display:none;">
+        &#x2B07; Export to Excel
+      </button>
+      <button class="btn btn-outline" id="clearBtn" onclick="clearAll()" style="display:none;">
+        Clear
+      </button>
+      <span class="status" id="statusText"></span>
+    </div>
+  </div>
+
+  <div class="results-section" id="results">
+    <div class="empty-state" id="emptyState">
+      <p>Paste your HLR requirements above and click <strong>Generate Test Cases</strong></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  let lastResults = null;
+
+  async function generate() {
+    const hlrText = document.getElementById("hlrInput").value.trim();
+    if (!hlrText) {
+      setStatus("Please enter HLR text.", true);
+      return;
+    }
+
+    const btn = document.getElementById("generateBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Generating...';
+    setStatus("Sending to local Ollama LLM...");
+    document.getElementById("exportBtn").style.display = "none";
+    document.getElementById("clearBtn").style.display = "none";
+    document.getElementById("results").innerHTML = "";
+
+    try {
+      const resp = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hlrText }),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.error || "Server error");
+      }
+
+      const data = await resp.json();
+      lastResults = data.results;
+      renderResults(data.results);
+      document.getElementById("exportBtn").style.display = "inline-flex";
+      document.getElementById("clearBtn").style.display = "inline-flex";
+      setStatus(`Generated ${data.results.length} HLR test suite(s).`);
+    } catch (err) {
+      setStatus("Error: " + err.message, true);
+      document.getElementById("results").innerHTML =
+        '<div class="empty-state"><p>Generation failed. Check your input and try again.</p></div>';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "Generate Test Cases";
+    }
+  }
+
+  function renderResults(results) {
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+
+    for (const hlr of results) {
+      const block = document.createElement("div");
+      block.className = "hlr-block";
+
+      // Header
+      const header = document.createElement("div");
+      header.className = "hlr-block-header";
+      header.innerHTML = `<h3>${hlr.hlr_id}</h3>`;
+      block.appendChild(header);
+
+      // Logical overview
+      const lo = hlr.logical_overview;
+      const loDiv = document.createElement("div");
+      loDiv.className = "logical-overview";
+      let loText = "";
+      for (const c of lo.conditions) {
+        loText += `${c.id}: ${c.signal} is ${c.true_state}\n`;
+      }
+      loText += `OUT: ${lo.output.signal} is ${lo.output.true_state}\n`;
+      loText += `<span class="formula">${lo.formula}</span>`;
+      loDiv.innerHTML = loText;
+      block.appendChild(loDiv);
+
+      // Table
+      const inputSignals = lo.conditions.map((c) => c.signal);
+      const outputSignal = lo.output.signal;
+
+      // Find the nominal (all-true) test case values for comparison
+      const nominalTC = hlr.test_cases[0];
+      const nominalInputs = nominalTC ? nominalTC.inputs : {};
+
+      const tableWrapper = document.createElement("div");
+      tableWrapper.className = "table-wrapper";
+
+      let tableHTML = "<table><thead>";
+
+      // Label row
+      tableHTML += '<tr class="label-row">';
+      tableHTML += "<th></th><th></th>";
+      tableHTML += `<th colspan="${inputSignals.length}">Inputs</th>`;
+      tableHTML += `<th>Outputs</th>`;
+      tableHTML += "</tr>";
+
+      // Header row
+      tableHTML += '<tr class="header-row">';
+      tableHTML += "<th>TC_ID</th><th>Test Objective</th>";
+      for (const sig of inputSignals) {
+        tableHTML += `<th>${sig}</th>`;
+      }
+      tableHTML += `<th>${outputSignal}</th>`;
+      tableHTML += "</tr></thead><tbody>";
+
+      for (let i = 0; i < hlr.test_cases.length; i++) {
+        const tc = hlr.test_cases[i];
+        tableHTML += "<tr>";
+        tableHTML += `<td>${tc.tc_id}</td>`;
+        tableHTML += `<td>${tc.test_objective}</td>`;
+
+        for (const sig of inputSignals) {
+          const val = tc.inputs[sig] || "";
+          const nomVal = nominalInputs[sig] || "";
+          const isFlipped = i > 0 && val !== nomVal;
+          const cls = isFlipped ? ' class="flipped"' : "";
+          tableHTML += `<td${cls}>${val}</td>`;
+        }
+
+        const outVal = tc.outputs[outputSignal] || "";
+        const outCls = outVal.toLowerCase().includes("not")
+          ? "output-not-set"
+          : "output-set";
+        tableHTML += `<td class="${outCls}">${outVal}</td>`;
+        tableHTML += "</tr>";
+      }
+
+      tableHTML += "</tbody></table>";
+      tableWrapper.innerHTML = tableHTML;
+      block.appendChild(tableWrapper);
+
+      container.appendChild(block);
+    }
+  }
+
+  async function exportExcel() {
+    if (!lastResults) return;
+    setStatus("Exporting to Excel...");
+
+    try {
+      const resp = await fetch("/api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ results: lastResults }),
+      });
+
+      if (!resp.ok) throw new Error("Export failed");
+
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "DO178C_Test_Cases.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setStatus("Excel file downloaded.");
+    } catch (err) {
+      setStatus("Export error: " + err.message, true);
+    }
+  }
+
+  function clearAll() {
+    lastResults = null;
+    document.getElementById("results").innerHTML =
+      '<div class="empty-state" id="emptyState"><p>Paste your HLR requirements above and click <strong>Generate Test Cases</strong></p></div>';
+    document.getElementById("exportBtn").style.display = "none";
+    document.getElementById("clearBtn").style.display = "none";
+    setStatus("");
+  }
+
+  function setStatus(msg, isError) {
+    const el = document.getElementById("statusText");
+    el.textContent = msg;
+    el.className = isError ? "status error" : "status";
+  }
+
+  // Check Ollama connection on page load
+  (async function checkHealth() {
+    try {
+      const resp = await fetch("/api/health");
+      const data = await resp.json();
+      if (data.ollama) {
+        setStatus("Ollama connected. Model: " + data.activeModel + " | Available: " + data.models.join(", "));
+      } else {
+        setStatus("Ollama is not running. Start it with: ollama serve", true);
+      }
+    } catch (e) {
+      setStatus("Cannot reach server.", true);
+    }
+  })();
+</script>
+
+</body>
+</html>
